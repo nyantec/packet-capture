@@ -1,0 +1,16 @@
+interfaces:
+- ppp0
+- br43
+
+max_incl_len:
+  ppp0: 200
+  br43: 300
+default_max_incl_len: 1500
+
+log_writer_config:
+  target_dir: "/var/log/packet"
+  prefix: "packet-"
+  suffix: ""
+  min_avail_of_total: 0.05
+  warn_if_avail_reached: false
+  max_file_size: 536870912
