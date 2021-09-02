@@ -225,9 +225,9 @@ dependencies = [
 
 [[package]]
 name = "log-writer"
-version = "0.3.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0952a270105ed75781545ff6a2194362662bc0a20dbb312c0f72a6d436ae3dc"
+checksum = "f58c9a0dcfe46075b9f40d49c32a4fed113b06168995a79870bdfddebe8d8550"
 dependencies = [
  "chrono",
  "libc",
