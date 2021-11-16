@@ -8,7 +8,7 @@ license = "MirOS"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log-writer = { version = "0.5", features = [ "serde" ] }
+log-writer = { version = "0.6", features = [ "serde" ] }
 thiserror = "1.0"
 log = "0.4"
 env_logger = "0.8"
