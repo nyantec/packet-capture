@@ -12,7 +12,7 @@ log-writer = { version = "0.6", features = [ "serde" ] }
 thiserror = "1.0"
 log = "0.4"
 env_logger = "0.8"
-afpacket = "0.1"
+afpacket = "0.2"
 pcap-file = "1.1"
 byteorder = "1.4"
 serde_yaml = "0.8"
