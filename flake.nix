@@ -12,7 +12,12 @@
           pname = "packet-capture";
           version = self.shortRev or "dirty-${toString self.lastModifiedDate}";
           src = self;
-          cargoLock.lockFile = ./Cargo.lock;
+          cargoLock = {
+            lockFile = ./Cargo.lock;
+            outputHashes = {
+              "iptool-0.1.0" = "sha256-8Bd4dU9z2J8ohdlwmcqRBSYqwOaP96lyKp3dkMaOPHc=";
+            };
+          };
         }
       ) {};
     };

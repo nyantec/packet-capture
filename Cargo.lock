@@ -116,6 +116,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
+name = "iptool"
+version = "0.1.0"
+source = "git+https://github.com/nyantec/iptool?branch=main#182c0f65e32287767fd16b2c14b94681b3937fc2"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -181,6 +189,8 @@ dependencies = [
  "byteorder",
  "env_logger",
  "getopts",
+ "iptool",
+ "libc",
  "log",
  "log-writer",
  "pcap-file",

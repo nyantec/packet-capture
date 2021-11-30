@@ -14,18 +14,32 @@ use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
 
 use log_writer::{LogWriterCallbacks, LogWriter};
-use pcap_file::{TsResolution, PcapReader};
+use pcap_file::{TsResolution, PcapReader, DataLink};
 use pcap_file::pcap::{Packet, PacketHeader, PcapHeader};
 use afpacket::sync::RawPacketStream;
 use byteorder::BigEndian;
 use log::*;
 use getopts::Options;
 
+fn get_datalink(iface: &str) -> Result<DataLink> {
+	let iptool = iptool::IpTool::new()?;
+	let arptype = iptool.get_arptype(iface)?;
+	let datalink = match arptype {
+		libc::ARPHRD_NONE => DataLink::RAW,
+		libc::ARPHRD_IEEE80211_RADIOTAP => DataLink::IEEE802_11_RADIOTAP,
+		_ => DataLink::ETHERNET,
+	};
+	Ok(datalink)
+}
+
 #[derive(Clone, Debug)]
-struct PcapCallbacks;
+struct PcapCallbacks {
+	datalink: DataLink,
+}
 impl LogWriterCallbacks for PcapCallbacks {
 	fn start_file(&mut self, writer: &mut LogWriter<Self>) -> std::result::Result<(), std::io::Error> {
-		let header: PcapHeader = Default::default();
+		let mut header: PcapHeader = Default::default();
+		header.datalink = self.datalink;
 		header.write_to::<_, BigEndian>(writer).map_err(pcap_to_io_error)?;
 		Ok(())
 	}
@@ -42,9 +56,10 @@ fn write_packet<W: Write>(packet: Packet, writer: &mut W) -> Result {
 	Ok(())
 }
 
-fn iface_thread(interface: String, tx: mpsc::Sender<(String, Packet)>) -> Result<()> {
+fn iface_thread(interface: String, tx: mpsc::Sender<(String, DataLink, Packet)>) -> Result<()> {
 	let mut reader = RawPacketStream::new()?;
 	reader.bind(&interface)?;
+	let datalink = get_datalink(&interface)?;
 
 	// We just assume nothing will be bigger than 2^16 bytes
 	let mut buf = [0u8; 65536];
@@ -61,14 +76,14 @@ fn iface_thread(interface: String, tx: mpsc::Sender<(String, Packet)>) -> Result
 				},
 				data: Cow::Owned(buf[0..bytes_read].to_vec())
 			};
-			tx.send((interface.clone(), packet)).map_err(|_| Error::ChannelSend)?;
+			tx.send((interface.clone(), datalink, packet)).map_err(|_| Error::ChannelSend)?;
 		} else {
 			warn!("read error");
 		}
 	}
 }
 
-fn unix_listener_thread(path: String, tx: mpsc::Sender<(String, Packet<'static>)>) -> Result<()> {
+fn unix_listener_thread(path: String, tx: mpsc::Sender<(String, DataLink, Packet<'static>)>) -> Result<()> {
 	let _result = fs::remove_file(Path::new(&path));
 	fs::create_dir_all(Path::new(&path).parent().unwrap())?;
 	let listener = UnixListener::bind(&path)?;
@@ -83,7 +98,7 @@ fn unix_listener_thread(path: String, tx: mpsc::Sender<(String, Packet<'static>)
 	Ok(())
 }
 
-fn unix_stream_thread(stream: UnixStream, tx: mpsc::Sender<(String, Packet)>) -> Result<()> {
+fn unix_stream_thread(stream: UnixStream, tx: mpsc::Sender<(String, DataLink, Packet)>) -> Result<()> {
 	let reader = PcapReader::new(stream).map_err(pcap_to_io_error)?;
 	for pcap in reader {
 		let mut pcap = pcap.map_err(pcap_to_io_error)?;
@@ -93,7 +108,7 @@ fn unix_stream_thread(stream: UnixStream, tx: mpsc::Sender<(String, Packet)>) ->
 		pcap.data = Cow::Owned(pcap.data[tag_end..pcap.header.incl_len as usize].to_vec());
 		pcap.header.orig_len -= (tag_len as u32) + 1;
 		pcap.header.incl_len -= (tag_len as u32) + 1;
-		tx.send((tag, pcap)).map_err(|_| Error::ChannelSend)?;
+		tx.send((tag, DataLink::RAW, pcap)).map_err(|_| Error::ChannelSend)?;
 	}
 	Ok(())
 }
@@ -119,7 +134,7 @@ impl Config {
 
 		let mut writers = HashMap::new();
 		loop {
-			let (stream_name, mut packet) = rx.recv()?;
+			let (stream_name, datalink, mut packet) = rx.recv()?;
 			let max_incl_len = self.max_incl_len.get(&stream_name).unwrap_or(&self.default_max_incl_len);
 			let incl_len = std::cmp::min(packet.header.incl_len as usize, *max_incl_len);
 			packet.header.incl_len = incl_len as u32;
@@ -130,7 +145,7 @@ impl Config {
 				// first packet, create writer
 				let mut log_writer_config = self.log_writer_config.clone();
 				log_writer_config.suffix = format!("-{}.pcap", stream_name);
-				let new_writer = LogWriter::new_with_callbacks(log_writer_config, PcapCallbacks)?;
+				let new_writer = LogWriter::new_with_callbacks(log_writer_config, PcapCallbacks { datalink })?;
 				writers.insert(stream_name.clone(), new_writer);
 			}
 			let writer = writers.get_mut(&stream_name).unwrap();
