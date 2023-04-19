@@ -147,7 +147,7 @@ dependencies = [
 [[package]]
 name = "log-writer"
 version = "0.6.3"
-source = "git+https://github.com/nyantec/log-writer.git?branch=main#c45849c0fbfe74cf3049f7193f58ba5bb16a9cff"
+source = "git+https://github.com/nyantec/log-writer.git?branch=main#c704a7bc75622bf32801b1908425800297f89d51"
 dependencies = [
  "chrono",
  "libc",
