@@ -1,5 +1,6 @@
 [package]
 name = "packet_capture"
+repository = "https://github.com/nyantec/packet-capture"
 version = "1.0.0"
 authors = ["The packet-capture Authors <oss@nyantec.com>"]
 edition = "2018"
@@ -8,7 +9,7 @@ license = "MirOS"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log-writer = { version = "0.6", features = [ "serde" ] }
+log-writer = { git = "https://github.com/nyantec/log-writer.git", branch = "main", features = [ "serde" ] }
 thiserror = "1.0"
 log = "0.4"
 env_logger = "0.8"
